@@ -1,7 +1,7 @@
 {
   "name": "netplan",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "main": "electron/main.js",
   "author": "Divital",
@@ -23,7 +23,11 @@
     "extraMetadata": {
       "DB_PATH": "/Volumes/app-data/db/netplan.db",
       "PORT": "3030",
-      "SERVER_PATH": "server"
+      "SERVER_PATH": "server",
+      "VITE_LOGO_PATH": "divital_logo.png",
+      "VITE_PROJECT_PLACEHOLDER_NAME": "Netplan",
+      "VITE_LOCATION_PLACEHOLDER_NAME": "Ihr Standort",
+      "VITE_API_URL": "http://localhost:3030/api"
     },
     "extraResources": [
       {
@@ -72,6 +76,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^24.12.0",
@@ -82,6 +87,7 @@
     "concurrently": "^9.2.1",
     "electron": "^40.8.0",
     "electron-builder": "^26.8.1",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
