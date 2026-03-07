@@ -1,0 +1,9 @@
+{
+  "name": "netplan-electron",
+  "version": "1.0.0",
+  "description": "Netplan Desktop Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  }
+}
