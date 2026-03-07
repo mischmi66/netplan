@@ -205,10 +205,32 @@ function startBackendServer() {
 
     // Backend-Server mit fork starten (funktioniert mit ASAR-Dateien)
     // fork ist eine spezielle Variante von spawn für Node.js-Prozesse
+    
+    // Umgebungsvariablen für den Server-Prozess vorbereiten
+    const env = { ...process.env };
+    
+    // Wenn DB_PATH nicht gesetzt ist, verwenden wir userData als Fallback
+    if (!env.DB_PATH) {
+      const userDataPath = app.getPath('userData');
+      const fallbackDbPath = path.join(userDataPath, 'netplan.db');
+      env.DB_PATH = fallbackDbPath;
+      console.log(`DB_PATH nicht gesetzt, verwende Fallback: ${fallbackDbPath}`);
+    } else {
+      console.log(`DB_PATH aus Umgebungsvariable: ${env.DB_PATH}`);
+    }
+    
+    // Umgebungsvariable für Server setzen
+    env.ELECTRON_USER_DATA_DB_PATH = path.join(app.getPath('userData'), 'netplan.db');
+    
     console.log('Starte Backend-Server mit fork von:', backendPath);
+    console.log('Übergebene Umgebungsvariablen:');
+    console.log('- DB_PATH:', env.DB_PATH);
+    console.log('- ELECTRON_USER_DATA_DB_PATH:', env.ELECTRON_USER_DATA_DB_PATH);
+    
     backendProcess = fork(backendPath, [], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-      cwd: path.dirname(backendPath) // Im selben Verzeichnis wie die Datei starten
+      cwd: path.dirname(backendPath), // Im selben Verzeichnis wie die Datei starten
+      env: env // Eigene Umgebungsvariablen übergeben
     });
 
     console.log('Backend-Process gestartet:', backendProcess.pid);

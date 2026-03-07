@@ -61,10 +61,13 @@ Netplan ist eine professionelle Desktop-Anwendung für die Netzwerkplanung und -
    # API-URL für Production
    VITE_API_URL=http://localhost:3030/api
    
-   # Platzhalternamen für die Benutzeroberfläche
-   VITE_PROJECT_PLACEHOLDER_NAME=Projekt A
-   VITE_LOCATION_PLACEHOLDER_NAME=Standort
-   ```
+# Platzhalternamen für die Benutzeroberfläche
+    VITE_PROJECT_PLACEHOLDER_NAME=Projekt A
+    VITE_LOCATION_PLACEHOLDER_NAME=Standort
+    
+    # Logo-Pfad für Header (optional für eigenes Branding)
+    VITE_LOGO_PATH=/netplan_logo.jpeg
+    ```
 
 4. **Entwicklungsumgebung starten**
    ```bash
@@ -102,6 +105,22 @@ netplan/
 ├── public/                # Statische Assets
 └── dist/                  # Gebautes Frontend (wird bei Build erstellt)
 ```
+
+### 🎨 Logo-Konfiguration (Custom Branding)
+
+Du kannst einfach dein eigenes Logo verwenden:
+
+1. **Dein Logo in den `public/` Ordner legen** (z.B. `mein_logo.png`)
+2. **In der `.env`-Datei konfigurieren**:
+   ```env
+   VITE_LOGO_PATH=/mein_logo.png
+   ```
+3. **App neu starten** – fertig!
+
+**Beispiel-Logos:**
+- Standard: `/netplan_logo.jpeg` (für Open-Source-Version)
+- Divital: `/divital_logo.png` (für die ursprüngliche Version)
+- Eigenes Logo: `/dein_logo.png` (für dein Branding)
 
 ### Technologiestack
 

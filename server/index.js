@@ -18,22 +18,41 @@ import('dotenv').then(dotenv => {
 
 const app = express();
 const PORT = process.env.PORT || 3030;
-const DB_PATH = process.env.DB_PATH || '/Volumes/app-data/db/netplan.db';
+
+// Datenbankpfad: 
+// 1. Aus Umgebungsvariable DB_PATH (für TrueNAS/Netzwerk)
+// 2. Fallback: Vom Electron-Hauptprozess übergeben (für lokale Installation)
+// Wenn keines gesetzt ist, wird ein Standardpfad verwendet
+const DB_PATH = process.env.DB_PATH || process.env.ELECTRON_USER_DATA_DB_PATH || '/Volumes/app-data/db/netplan.db';
 const DB_DIR = path.dirname(DB_PATH);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// TrueNAS-Laufwerk Mount-Check
+// Datenbankpfad-Überprüfung
 function checkDbPath() {
+  console.log(`Datenbankpfad: ${DB_PATH}`);
+  console.log(`Datenbankverzeichnis: ${DB_DIR}`);
+  
+  // Wenn der Pfad nicht existiert, versuchen wir das Verzeichnis zu erstellen
+  // (für lokale Installationen im userData-Verzeichnis)
   if (!fs.existsSync(DB_DIR)) {
-    console.error(`FEHLER: Das Verzeichnis ${DB_DIR} existiert nicht.`);
-    console.error('Bitte stellen Sie sicher, dass das TrueNAS-Laufwerk korrekt eingebunden ist.');
-    process.exit(1);
+    console.log(`Verzeichnis ${DB_DIR} existiert nicht, versuche es zu erstellen...`);
+    try {
+      fs.ensureDirSync(DB_DIR);
+      console.log(`Verzeichnis erfolgreich erstellt: ${DB_DIR}`);
+    } catch (err) {
+      console.error(`FEHLER: Verzeichnis ${DB_DIR} konnte nicht erstellt werden:`, err.message);
+      console.error('Mögliche Lösungen:');
+      console.error('1. Setzen Sie DB_PATH in der .env-Datei auf einen beschreibbaren Pfad');
+      console.error('2. Stellen Sie sicher, dass die App Schreibrechte hat');
+      console.error('3. Für Netzwerkpfade: Stellen Sie sicher, dass der Mount verfügbar ist');
+      process.exit(1);
+    }
   }
   
-  console.log(`TrueNAS-Laufwerk unter ${DB_DIR} erfolgreich überprüft.`);
+  console.log(`Datenbankpfad erfolgreich überprüft: ${DB_PATH}`);
   return true;
 }
 

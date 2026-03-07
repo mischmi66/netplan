@@ -4,8 +4,6 @@ import useProjectStore from '../../store/useProjectStore';
 import useNetplanStore from '../../store/useNetplanStore';
 import { exportToPDF } from '../../utils/export';
 import ProjectSelectionModal from './ProjectSelectionModal';
-// Logo direkt importieren
-import divitalLogo from '/public/divital_logo.png';
 
 const Header: React.FC = () => {
   const { currentProject, createProject, updateProject } = useProjectStore();
@@ -91,8 +89,8 @@ const Header: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <img 
-            src={divitalLogo} 
-            alt="Divital Logo" 
+            src={import.meta.env.VITE_LOGO_PATH || '/netplan_logo.jpeg'} 
+            alt="Netplan Logo" 
             className="h-10 max-h-10" 
           />
           <h1 className="text-xl font-bold">Netplan</h1>
