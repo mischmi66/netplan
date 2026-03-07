@@ -136,21 +136,21 @@ Du kannst einfach dein eigenes Logo verwenden:
 ### Projekte erstellen und verwalten
 
 1. **Neues Projekt erstellen**:
-   - Geben Sie einen Projektnamen im Header ein
+   - Gebe einen Projektnamen im Header ein
    - Optional: Standort hinzufügen
-   - Klicken Sie auf "Speichern"
+   - Klicke auf "Speichern"
 
 2. **Projekt öffnen**:
-   - Klicken Sie auf "Öffnen" im Header
-   - Wählen Sie ein vorhandenes Projekt aus der Liste
+   - Klicke auf "Öffnen" im Header
+   - Wähle ein vorhandenes Projekt aus der Liste
 
 3. **Netzwerkdiagramm erstellen**:
-   - Ziehen Sie Knoten aus der Toolbar auf die Arbeitsfläche
-   - Verbinden Sie Knoten durch Ziehen von Anschlüssen
-   - Konfigurieren Sie Knoteneigenschaften durch Doppelklick
+   - Ziehe Knoten aus der Toolbar auf die Arbeitsfläche
+   - Verbinde Knoten durch Ziehen von Anschlüssen
+   - Konfiguriere Knoteneigenschaften durch Doppelklick
 
 4. **Als PDF exportieren**:
-   - Klicken Sie auf "PDF Export" im Header
+   - Klicke auf "PDF Export" im Header
    - Das Diagramm wird als professionelles PDF gespeichert
 
 ## 🔒 Sicherheit und Konfiguration
@@ -182,7 +182,7 @@ npm run build:win
 ```
 
 ### App signieren (optional)
-Fügen Sie in `package.json` unter `build` Signatur-Informationen hinzu.
+Füge in `package.json` unter `build` Signatur-Informationen hinzu.
 
 ## 🤝 Mitwirken
 
@@ -206,9 +206,9 @@ Dieses Projekt steht unter der MIT-Lizenz. Siehe die [LICENSE](LICENSE) Datei f�
 ## 📞 Support
 
 Bei Fragen oder Problemen:
-1. Issues im GitHub Repository öffnen
-2. Stellen Sie sicher, dass Sie die `.env`-Konfiguration überprüft haben
-3. Beschreiben Sie das Problem detailliert mit Schritten zur Reproduktion
+1. Öffne Issues im GitHub Repository
+2. Stelle sicher, dass du die `.env`-Konfiguration überprüft hast
+3. Beschreibe das Problem detailliert mit Schritten zur Reproduktion
 
 ## 🙏 Danksagung
 
