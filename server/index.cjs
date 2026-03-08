@@ -237,6 +237,21 @@ app.put('/api/projects/:id/open', (req, res) => {
   }
 });
 
+app.delete('/api/projects/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Projekt nicht gefunden' });
+    }
+
+    res.json({ success: true, message: 'Projekt erfolgreich gelöscht' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Knoten-Endpunkte
 app.get('/api/projects/:projectId/nodes', (req, res) => {
   try {

@@ -2,7 +2,7 @@ import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
 // Funktion zum Erstellen eines PDFs aus dem Canvas
-export const exportToPDF = async (containerId: string) => {
+export const exportToPDF = async (containerId: string, projectName: string, location: string) => {
   console.log('PDF-Export-Funktion wird aufgerufen für Container:', containerId);
   
   // Variablen außerhalb des try-Blocks deklarieren für finally-Zugriff
@@ -16,13 +16,6 @@ export const exportToPDF = async (containerId: string) => {
     console.error('Canvas-Container nicht gefunden:', containerId);
     return;
   }
-  
-  // Projektinformationen aus der UI extrahieren
-  const projectNameElement = container.querySelector('[data-project-name]') as HTMLInputElement;
-  const locationElement = container.querySelector('[data-project-location]') as HTMLInputElement;
-  
-  const projectName = projectNameElement?.value || 'Unbenanntes Projekt';
-  const location = locationElement?.value || '';
   
   try {
     console.log('Starte Export für Projekt:', projectName);
@@ -165,15 +158,35 @@ export const exportToPDF = async (containerId: string) => {
       pdf.text(`Exportiert: ${new Date().toLocaleDateString('de-DE')}`, 14, 28);
     }
     
-    // Bilddimensionen berechnen, um es im PDF unter Beibehaltung des Seitenverhältnisses anzupassen
-    const imgWidth = pdf.internal.pageSize.getWidth() - 28;
-    const imgHeight = (pngImage.height * imgWidth) / pngImage.width;
-    const imageY = 40; // Position unterhalb der Metadaten
+    // Bilddimensionen intelligent berechnen, um es im PDF vollständig unterzubringen
+    const page = pdf.internal.pageSize;
+    const pageWidth = page.getWidth();
+    const pageHeight = page.getHeight();
+
+    // Verfügbarer Platz auf der Seite (mit Rändern und Platz für Header)
+    const availableWidth = pageWidth - 28; // 14mm Rand links/rechts
+    const availableHeight = pageHeight - 54; // 14mm Rand oben, 40mm für Header-Inhalt
+    const imageY = 40; // Y-Position für das Bild
+
+    const imageAspectRatio = pngImage.width / pngImage.height;
+    const pageAspectRatio = availableWidth / availableHeight;
+
+    let finalImgWidth, finalImgHeight;
+
+    if (imageAspectRatio > pageAspectRatio) {
+      // Bild ist breiter als der verfügbare Platz -> an Breite anpassen
+      finalImgWidth = availableWidth;
+      finalImgHeight = finalImgWidth / imageAspectRatio;
+    } else {
+      // Bild ist höher als der verfügbare Platz -> an Höhe anpassen
+      finalImgHeight = availableHeight;
+      finalImgWidth = finalImgHeight * imageAspectRatio;
+    }
     
     console.log('Füge Canvas-Bild zum PDF hinzu...');
     
     // Das PNG-Bild zum PDF hinzufügen
-    pdf.addImage(pngDataUrl, 'PNG', 14, imageY, imgWidth, imgHeight);
+    pdf.addImage(pngDataUrl, 'PNG', 14, imageY, finalImgWidth, finalImgHeight);
     
     // PDF speichern
     const fileName = `${projectName.replace(/[^a-zA-Z0-9äöüßÄÖÜ_\- ]/g, '_')}_netplan.pdf`;

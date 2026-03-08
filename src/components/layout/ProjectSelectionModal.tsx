@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Folder, Clock, Calendar, MapPin } from 'lucide-react';
+import { X, Folder, Clock, Calendar, MapPin, Trash2 } from 'lucide-react';
 import { projectApi } from '../../services/api';
 import useProjectStore from '../../store/useProjectStore';
 import useNetplanStore from '../../store/useNetplanStore';
@@ -21,7 +21,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({ isOpen, o
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { loadProject, currentProject } = useProjectStore();
+  const { loadProject, currentProject, deleteProject } = useProjectStore();
   const { loadFromDatabase } = useNetplanStore();
 
   useEffect(() => {
@@ -54,6 +54,19 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({ isOpen, o
       onClose();
     } catch (err: any) {
       console.error('Fehler beim Laden des Projekts:', err);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: number) => {
+    if (window.confirm('Möchten Sie dieses Projekt wirklich endgültig löschen?')) {
+      try {
+        await deleteProject(projectId);
+        // Liste nach dem Löschen neu laden
+        fetchProjects();
+      } catch (err: any) {
+        setError('Fehler beim Löschen des Projekts.');
+        console.error('Fehler beim Löschen:', err);
+      }
     }
   };
 
@@ -151,7 +164,17 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({ isOpen, o
                     </div>
                   </div>
                   
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-4 flex justify-end items-center space-x-2">
+                    <button
+                        className="p-2 rounded-full text-gray-400 hover:bg-red-500 hover:text-white transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(project.id);
+                        }}
+                        title="Projekt löschen"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     <button
                       className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm"
                       onClick={(e) => {

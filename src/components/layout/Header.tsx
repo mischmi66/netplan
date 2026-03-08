@@ -58,22 +58,10 @@ const Header: React.FC = () => {
   
   // Netzwerkdiagramm als PDF exportieren
   const handleExport = () => {
-    console.log('PDF-Export-Button wurde geklickt');
-    
     if (!currentProject) {
-      console.warn('Kein aktuelles Projekt für Export verfügbar');
       return;
     }
-    
-    console.log('Starte PDF-Export für Projekt:', currentProject.name);
-    
-    try {
-      exportToPDF('netplan-canvas-container');
-      console.log('PDF-Export-Funktion aufgerufen');
-    } catch (error) {
-      console.error('Fehler beim PDF-Export:', error);
-      console.error('Fehlerdetails:', (error as Error).message);
-    }
+    exportToPDF('netplan-canvas-container', projectName, location);
   };
 
   // Projekt-Modal öffnen

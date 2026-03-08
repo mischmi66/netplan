@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { projectApi } from '../services/api';
+import useNetplanStore from './useNetplanStore'; // Import Netplan store
 
 interface Project {
   id: number;
@@ -20,6 +21,7 @@ interface ProjectState {
   loadProject: (id: number) => Promise<void>;
   loadLastOpenedProject: () => Promise<void>;
   updateProject: (data: Partial<Project>) => Promise<void>;
+  deleteProject: (id: number) => Promise<void>;
 }
 
 const useProjectStore = create<ProjectState>((set, get) => ({
@@ -78,6 +80,23 @@ const useProjectStore = create<ProjectState>((set, get) => ({
       const response = await projectApi.update(id, data as any);
       
       set({ currentProject: response.data, loading: false });
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
+  },
+
+  deleteProject: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      await projectApi.delete(id);
+      
+      // Wenn das gelöschte Projekt das aktuell geöffnete war, zurücksetzen
+      if (get().currentProject?.id === id) {
+        set({ currentProject: null });
+        useNetplanStore.getState().resetCanvas(); // Canvas leeren
+      }
+
+      set({ loading: false });
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }

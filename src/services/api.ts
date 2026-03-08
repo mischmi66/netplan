@@ -142,6 +142,9 @@ export const projectApi = {
   update: (id: number, data: { name: string; location?: string }) => 
     api.put(`/projects/${id}`, data),
   
+  // Projekt löschen
+  delete: (id: number) => api.delete(`/projects/${id}`),
+  
   // Projekt als zuletzt geöffnet markieren
   markAsOpen: (id: number) => api.put(`/projects/${id}/open`)
 };
