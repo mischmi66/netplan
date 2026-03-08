@@ -1,0 +1,38 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "google/gemini-2.0-flash-exp",
+  "provider": {
+    "gemini": {
+      "options": {
+        "apiKey": "{env:GOOGLE_API_KEY}"
+      }
+    }
+  },
+  "instructions": [
+    "Netplan ist eine Electron-basierte Netzwerkplanungssoftware mit Backend-Server auf Express.js und SQLite-Datenbank.",
+    "Wichtige Dateien:",
+    "- electron/main.js: Electron-Hauptprozess mit automatischem Server-Lifecycle-Management",
+    "- server/index.js: Backend-Server mit Express.js API und better-sqlite3 Datenbank",
+    "- src/services/api.ts: Frontend-API-Service mit verbessertem Fehler-Handling",
+    "Projekt-Struktur:",
+    "- Electron startet Backend-Server automatisch als Child-Process",
+    "- Port 3030 für Backend-Server",
+    "- Port 3000 für Vite Dev-Server (Development)",
+    "- Datenbank-Pfad: /Volumes/app-data/db/netplan.db oder Fallback auf userData",
+    "Konventionen:",
+    "- ES-Module für server/index.js",
+    "- TypeScript für Frontend",
+    "- Zustand-Management mit Zustand",
+    "- ReactFlow für Netzwerk-Diagramme",
+    "Wichtige Skripte:",
+    "- npm run electron:dev: Startet Development-Umgebung",
+    "- npm run build:mac: Baut macOS Applikation",
+    "- npm run postinstall: Baut better-sqlite3 für Electron neu",
+    "Besondere Features:",
+    "- Automatischer Server-Start (Port-Prüfung vor Start)",
+    "- Automatischer Rebuild von better-sqlite3 für Electron",
+    "- Verbessertes Fehler-Handling mit Dialog-Fenstern",
+    "- Logging-System in backend.log",
+    "- Health-Check für Server-Verfügrabarkeit"
+  ]
+}

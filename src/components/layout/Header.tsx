@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Save, FileDown, Folder } from 'lucide-react';
+import { Save, FileDown, Folder, FilePlus } from 'lucide-react';
 import useProjectStore from '../../store/useProjectStore';
 import useNetplanStore from '../../store/useNetplanStore';
 import { exportToPDF } from '../../utils/export';
 import ProjectSelectionModal from './ProjectSelectionModal';
 
 const Header: React.FC = () => {
-  const { currentProject, createProject, updateProject } = useProjectStore();
-  const { saveToDatabase } = useNetplanStore();
+  const { currentProject, createProject, updateProject, newProject } = useProjectStore();
+  const { saveToDatabase, showToast, resetCanvas } = useNetplanStore();
   
   const [showProjectModal, setShowProjectModal] = useState(false);
   
@@ -19,35 +19,41 @@ const Header: React.FC = () => {
     if (currentProject) {
       setProjectName(currentProject.name);
       setLocation(currentProject.location || '');
+    } else {
+      // Wenn kein Projekt geladen ist (z.B. nach "Neu"), Felder leeren
+      setProjectName('');
+      setLocation('');
     }
   }, [currentProject]);
   
   // Projektdaten speichern
   const saveProject = async () => {
-    console.log('Speichern-Button wurde geklickt');
-    
     try {
       if (currentProject) {
-        console.log('Aktuelles Projekt vorhanden:', currentProject);
-        console.log('Aktualisiere Projekt mit:', { name: projectName, location });
-        
         await updateProject({ name: projectName, location });
-        console.log('Projekt erfolgreich aktualisiert');
-        
         await saveToDatabase(currentProject.id);
-        console.log('Netzwerkdiagramm erfolgreich in Datenbank gespeichert');
+        showToast('Projekt erfolgreich gespeichert!');
       } else if (projectName) {
-        console.log('Neues Projekt wird erstellt:', projectName);
-        
         await createProject(projectName, location);
-        console.log('Projekt erfolgreich erstellt');
+        // Nach dem Erstellen ist das Projekt im Store, wir müssen es uns holen um die ID zu haben
+        const newId = useProjectStore.getState().currentProject?.id;
+        if (newId) {
+          await saveToDatabase(newId);
+        }
+        showToast('Projekt erfolgreich erstellt!');
       } else {
         console.warn('Kein Projektname angegeben');
+        showToast('Bitte geben Sie einen Projektnamen an.');
       }
     } catch (error) {
       console.error('Fehler beim Speichern:', error);
-      console.error('Fehlerdetails:', (error as Error).message);
+      showToast('Fehler beim Speichern des Projekts.');
     }
+  };
+
+  const handleNewProject = () => {
+    newProject();
+    resetCanvas();
   };
   
   // Netzwerkdiagramm als PDF exportieren
@@ -114,6 +120,14 @@ const Header: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <button
+            className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-700 flex items-center"
+            onClick={handleNewProject}
+            title="Neues Projekt erstellen"
+          >
+            <FilePlus size={16} className="mr-1" />
+            Neu
+          </button>
           <button
             className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-700 flex items-center"
             onClick={openProjectModal}

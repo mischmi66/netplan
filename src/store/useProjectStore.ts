@@ -15,6 +15,7 @@ interface ProjectState {
   error: string | null;
   
   // Aktionen
+  newProject: () => void;
   createProject: (name: string, location: string) => Promise<void>;
   loadProject: (id: number) => Promise<void>;
   loadLastOpenedProject: () => Promise<void>;
@@ -25,6 +26,10 @@ const useProjectStore = create<ProjectState>((set, get) => ({
   currentProject: null,
   loading: false,
   error: null,
+
+  newProject: () => {
+    set({ currentProject: null });
+  },
   
   createProject: async (name, location) => {
     set({ loading: true, error: null });

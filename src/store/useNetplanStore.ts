@@ -22,8 +22,11 @@ interface NetplanState {
   selectedEdge: Edge<EdgeData> | null;
   loading: boolean;
   error: string | null;
+  toastMessage: string | null;
   
   // Aktionen
+  showToast: (message: string) => void;
+  resetCanvas: () => void;
   setNodes: (nodes: Node<NodeData>[]) => void;
   setEdges: (edges: Edge<EdgeData>[]) => void;
   onNodesChange: OnNodesChange;
@@ -47,6 +50,16 @@ const useNetplanStore = create<NetplanState>((set, get) => ({
   selectedEdge: null,
   loading: false,
   error: null,
+  toastMessage: null,
+
+  showToast: (message) => {
+    set({ toastMessage: message });
+    setTimeout(() => set({ toastMessage: null }), 3000);
+  },
+
+  resetCanvas: () => {
+    set({ nodes: [], edges: [], selectedNode: null, selectedEdge: null });
+  },
   
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),

@@ -5,10 +5,11 @@ import InspectorPanel from './components/layout/InspectorPanel';
 import NetplanCanvas from './components/canvas/NetplanCanvas';
 import useProjectStore from './store/useProjectStore';
 import useNetplanStore from './store/useNetplanStore';
+import Toast from './components/ui/Toast';
 
 const App: React.FC = () => {
   const { currentProject, loadLastOpenedProject } = useProjectStore();
-  const { loadFromDatabase } = useNetplanStore();
+  const { loadFromDatabase, toastMessage, showToast } = useNetplanStore();
   
   // Letztes geöffnetes Projekt beim App-Start laden
   useEffect(() => {
@@ -29,6 +30,12 @@ const App: React.FC = () => {
         </div>
         <InspectorPanel />
       </div>
+      {toastMessage && (
+        <Toast 
+          message={toastMessage} 
+          onClose={() => showToast('')} 
+        />
+      )}
     </div>
   );
 };
