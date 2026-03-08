@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog } = require('electron');
+const { app, BrowserWindow, Menu, dialog, shell } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
@@ -10,8 +10,9 @@ const isDev = !app.isPackaged;
 
 let mainWindow;
 let backendProcess;
+let isQuiting = false;
 
-function createWindow() {
+async function createWindow() {
   // Umgebungsvariablen laden
   try {
     require('dotenv').config();
@@ -96,6 +97,16 @@ function createWindow() {
 
   // Backend-Server starten
   startBackendServer();
+
+  // Warten bis das Backend bereit ist
+  console.log('Warte auf Backend-Server...');
+  const backendReady = await waitForBackend();
+  if (!backendReady) {
+    dialog.showErrorBox('Backend-Fehler', 'Der Backend-Server konnte nicht gestartet werden. Die Anwendung wird beendet.');
+    app.quit();
+    return;
+  }
+  console.log('Backend-Server ist bereit. Lade Frontend.');
   
   // Je nach Umgebung unterschiedliche URL laden
   if (isDev) {
@@ -170,18 +181,52 @@ function createWindow() {
   });
 }
 
+// Hinzugefügte Hilfsfunktion
+async function waitForBackend() {
+  const maxRetries = 30;
+  const retryDelay = 500; // ms
+
+  for (let i = 0; i < maxRetries; i++) {
+    const isReady = await healthCheck();
+    if (isReady) {
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, retryDelay));
+  }
+  return false;
+}
+
+
 function startBackendServer() {
+  let logStream;
   try {
+    // Log-Datei für Backend-Ausgaben erstellen (immer im Projekt-Stammverzeichnis)
+    // __dirname zeigt auf electron/ Ordner, also gehen wir 2 Ebenen hoch
+    const projectRoot = path.join(__dirname, '..', '..');
+    const logFilePath = path.join(projectRoot, 'backend.log');
+    logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+    const timestamp = new Date().toISOString();
+    
+    // Start-Log-Eintrag
+    logStream.write(`\n\n=== Server Startversuch: ${timestamp} ===\n`);
+    logStream.write(`App-Pfad: ${app.getAppPath()}\n`);
+    logStream.write(`Projekt-Verzeichnis: ${projectRoot}\n`);
+    logStream.write(`Log-Datei: ${logFilePath}\n`);
+    logStream.write(`Node.js Version: ${process.version}\n`);
+    logStream.write(`Electron Version: ${process.versions.electron || 'N/A'}\n`);
+    logStream.write(`Platform: ${process.platform} ${process.arch}\n`);
+    logStream.write(`DB_PATH aus env: ${process.env.DB_PATH || 'Nicht gesetzt'}\n`);
+    
     let backendPath;
     
     if (isDev) {
       // Development-Modus: Server aus dem Projektverzeichnis
-      backendPath = path.join(__dirname, '../server/index.js');
+      backendPath = path.join(__dirname, '../server/index.cjs');
     } else {
       // Production-Modus: Server aus den App-Ressourcen
       // Bei ASAR: App-Ressourcen müssen aus dem extraResources-Verzeichnis geladen werden
       const serverPath = process.env.SERVER_PATH || 'server';
-      backendPath = path.join(process.resourcesPath, serverPath, 'index.js');
+      backendPath = path.join(process.resourcesPath, serverPath, 'index.cjs');
     }
     
     console.log('Versuche Backend zu starten von:', backendPath);
@@ -192,6 +237,11 @@ function startBackendServer() {
       appPath: app.getAppPath(),
       isDev: isDev
     });
+    
+    logStream.write(`Backend-Pfad: ${backendPath}\n`);
+    logStream.write(`Development-Modus: ${isDev}\n`);
+    logStream.write(`Resources-Pfad: ${process.resourcesPath}\n`);
+    logStream.write(`Aktuelles Verzeichnis: ${process.cwd()}\n`);
     
     // Prüfen, ob die Backend-Datei existiert
     if (!fs.existsSync(backendPath)) {
@@ -207,12 +257,21 @@ function startBackendServer() {
 
     // Umgebungsvariablen für den Server-Prozess vorbereiten
     const env = { ...process.env };
-    
+
+    // NODE_PATH für gepackte App setzen
+    if (!isDev) {
+      env.NODE_PATH = path.join(process.resourcesPath, 'app.asar/node_modules');
+    }
+
     // DB_PATH prüfen und ggf. Fallback setzen
     const userDataPath = app.getPath('userData');
     const fallbackDbPath = path.join(userDataPath, 'netplan.db');
-    
-    if (!env.DB_PATH) {
+    const truenasDbPath = '/Volumes/app-data/db/netplan.db';
+
+    if (!isDev && fs.existsSync(truenasDbPath)) {
+      env.DB_PATH = truenasDbPath;
+      console.log(`Produktionsmodus: TrueNAS DB gefunden und wird verwendet: ${truenasDbPath}`);
+    } else if (!env.DB_PATH) {
       env.DB_PATH = fallbackDbPath;
       console.log(`DB_PATH nicht gesetzt, verwende Fallback: ${fallbackDbPath}`);
     } else {
@@ -250,35 +309,97 @@ function startBackendServer() {
         }
       }
     }
+
     
     // Umgebungsvariable für Server setzen
     env.ELECTRON_USER_DATA_DB_PATH = fallbackDbPath;
+    
+    // Debug: Alle Umgebungsvariablen im Log
+    logStream.write(`\n=== Umgebungsvariablen für Backend ===\n`);
+    logStream.write(`- DB_PATH: ${env.DB_PATH}\n`);
+    logStream.write(`- ELECTRON_USER_DATA_DB_PATH: ${env.ELECTRON_USER_DATA_DB_PATH}\n`);
+    logStream.write(`- PORT: ${env.PORT || '3030'}\n`);
+    logStream.write(`- NODE_ENV: ${env.NODE_ENV || 'Nicht gesetzt'}\n`);
+    logStream.write(`- NODE_PATH: ${env.NODE_PATH || 'Nicht gesetzt'}\n`);
+    logStream.write(`- PATH: ${env.PATH ? env.PATH.substring(0, 200) + '...' : 'Nicht gesetzt'}\n`);
+    logStream.write(`- PWD: ${env.PWD || 'Nicht gesetzt'}\n`);
+    logStream.write(`- SHELL: ${env.SHELL || 'Nicht gesetzt'}\n`);
+    logStream.write(`- USER: ${env.USER || 'Nicht gesetzt'}\n`);
+    logStream.write(`- HOME: ${env.HOME || 'Nicht gesetzt'}\n`);
+    logStream.write(`- NODE_OPTIONS: ${env.NODE_OPTIONS || 'Nicht gesetzt'}\n`);
+    logStream.write(`- ELECTRON_RUN_AS_NODE: ${env.ELECTRON_RUN_AS_NODE || 'Nicht gesetzt'}\n`);
+    logStream.write(`- ELECTRON_NO_ASAR: ${env.ELECTRON_NO_ASAR || 'Nicht gesetzt'}\n`);
+    
+    // Besonders wichtige Variablen für better-sqlite3
+    logStream.write(`\n=== Node.js/Electron Konfiguration ===\n`);
+    logStream.write(`- Node.js Version (Main): ${process.version}\n`);
+    logStream.write(`- Electron Version: ${process.versions.electron || 'N/A'}\n`);
+    logStream.write(`- Electron process.versions: ${JSON.stringify(process.versions)}\n`);
+    logStream.write(`- NODE_MODULE_VERSION (erwartet): ${process.versions.modules}\n`);
+    logStream.write(`- Plattform: ${process.platform} ${process.arch}\n`);
+    logStream.write(`- CWD: ${process.cwd()}\n`);
+    logStream.write(`- execPath: ${process.execPath}\n`);
+    logStream.write(`- __dirname: ${__dirname}\n`);
+    
+    // Prüfen ob better-sqlite3 Modul existiert und seine Version
+    const betterSqlite3Path = path.join(projectRoot, 'node_modules', 'better-sqlite3');
+    const buildDir = path.join(betterSqlite3Path, 'build', 'Release');
+    try {
+      logStream.write(`\n=== better-sqlite3 Prüfung ===\n`);
+      logStream.write(`- Modul-Pfad: ${betterSqlite3Path}\n`);
+      logStream.write(`- Build-Verzeichnis existiert: ${fs.existsSync(buildDir)}\n`);
+      if (fs.existsSync(buildDir)) {
+        const files = fs.readdirSync(buildDir);
+        logStream.write(`- Build-Dateien: ${files.join(', ')}\n`);
+        if (files.includes('better_sqlite3.node')) {
+          const stats = fs.statSync(path.join(buildDir, 'better_sqlite3.node'));
+          logStream.write(`- better_sqlite3.node Größe: ${stats.size} bytes\n`);
+          logStream.write(`- better_sqlite3.node Modifiziert: ${stats.mtime}\n`);
+        }
+      }
+    } catch (err) {
+      logStream.write(`- Fehler beim Prüfen von better-sqlite3: ${err.message}\n`);
+    }
     
     console.log('Starte Backend-Server mit fork von:', backendPath);
     console.log('Übergebene Umgebungsvariablen:');
     console.log('- DB_PATH:', env.DB_PATH);
     console.log('- ELECTRON_USER_DATA_DB_PATH:', env.ELECTRON_USER_DATA_DB_PATH);
     
+    // Fork-Konfiguration im Log
+    logStream.write(`\nFork-Konfiguration:\n`);
+    logStream.write(`- Backend-Pfad: ${backendPath}\n`);
+    logStream.write(`- Arbeitsverzeichnis: ${path.dirname(backendPath)}\n`);
+    logStream.write(`- Stdio: pipe für stdout/stderr/stdin, ipc\n`);
+    
     backendProcess = fork(backendPath, [], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       cwd: path.dirname(backendPath), // Im selben Verzeichnis wie die Datei starten
-      env: env // Eigene Umgebungsvariablen übergeben
+      env: env, // Eigene Umgebungsvariablen übergeben
+      execArgv: isDev ? [] : [] // Keine zusätzlichen Exec-Argumente
     });
 
     console.log('Backend-Process gestartet:', backendProcess.pid);
+    logStream.write(`Backend-Prozess gestartet mit PID: ${backendProcess.pid}\n`);
+    logStream.write(`Prozess-ID: ${backendProcess.pid}\n`);
+    logStream.write(`Umgebungsvariablen an Prozess übergeben: Ja\n`);
+    logStream.write(`\n--- Backend Server Output ---\n`);
 
     // Event-Handler für Standard-Ausgabe und Fehler
     if (backendProcess.stdout) {
       backendProcess.stdout.on('data', (data) => {
         const output = data.toString();
         console.log(`Backend: ${output}`);
+        logStream.write(`[STDOUT] ${output}`);
         
         // Auf Datenbank-Fehler prüfen
         if (output.includes('Datenbankpfad erfolgreich überprüft')) {
           console.log('Datenbank-Verbindung erfolgreich');
+          logStream.write(`[INFO] Datenbank-Verbindung erfolgreich\n`);
         } else if (output.includes('FEHLER: Verzeichnis') && output.includes('konnte nicht erstellt werden')) {
           // Datenbank-Verzeichnis-Fehler erkannt
           console.error('Datenbank-Verzeichnis-Fehler erkannt');
+          logStream.write(`[ERROR] Datenbank-Verzeichnis-Fehler erkannt\n`);
           
           // Benutzer benachrichtigen
           setTimeout(() => {
@@ -293,6 +414,7 @@ function startBackendServer() {
         } else if (output.includes('Fehler bei der Datenbankinitialisierung')) {
           // Datenbank-Initialisierungsfehler
           console.error('Datenbank-Initialisierungsfehler erkannt');
+          logStream.write(`[ERROR] Datenbank-Initialisierungsfehler erkannt\n`);
           
           setTimeout(() => {
             dialog.showMessageBox({
@@ -311,10 +433,12 @@ function startBackendServer() {
       backendProcess.stderr.on('data', (data) => {
         const errorOutput = data.toString();
         console.error(`Backend Error: ${errorOutput}`);
+        logStream.write(`[STDERR] ${errorOutput}`);
         
         // Prüfen auf Modul-Versionskonflikt (better-sqlite3)
         if (errorOutput.includes('NODE_MODULE_VERSION')) {
           console.error('Node.js Modul-Versionskonflikt erkannt');
+          logStream.write(`[ERROR] Node.js Modul-Versionskonflikt erkannt\n`);
           
           setTimeout(() => {
             dialog.showMessageBox({
@@ -331,8 +455,13 @@ function startBackendServer() {
 
     backendProcess.on('close', (code) => {
       console.log(`Backend-Prozess beendet mit Code ${code}`);
+      logStream.write(`\n--- Backend-Prozess beendet mit Code ${code} ---\n`);
+      logStream.write(`Zeitstempel: ${new Date().toISOString()}\n`);
+      logStream.write(`Log-Datei: ${logFilePath}\n`);
+      logStream.end(); // Log-Datei schließen
       
-      if (code !== 0) {
+      // Nur Warnung anzeigen, wenn Prozess frühzeitig beendet wird (nicht durch App-Beenden)
+      if (code !== 0 && !isQuiting) {
         console.error(`Backend-Prozess unerwartet beendet mit Code ${code}`);
         
         setTimeout(() => {
@@ -340,10 +469,22 @@ function startBackendServer() {
             type: 'warning',
             title: 'Backend-Server gestoppt',
             message: 'Der Backend-Server wurde unerwartet beendet',
-            detail: `Der Server-Prozess wurde mit Code ${code} beendet. Die Anwendung funktioniert möglicherweise nicht korrekt.`,
-            buttons: ['OK']
+            detail: `Der Server-Prozess wurde mit Code ${code} beendet.\n\nLog-Datei: ${logFilePath}\n\nBitte überprüfen Sie die Log-Datei für Details.\n\nMögliche Ursachen:\n1. Datenbank-Zugriffsproblem\n2. Modul-Versionskonflikt\n3. Port-Konflikt (3030 bereits belegt)\n4. Netzwerkprobleme`,
+            buttons: ['Log-Datei öffnen', 'OK'],
+            defaultId: 0,
+            cancelId: 1
+          }).then(({ response }) => {
+            if (response === 0) {
+              // Log-Datei öffnen
+              shell.openPath(logFilePath).catch(err => {
+                console.error('Konnte Log-Datei nicht öffnen:', err);
+              });
+            }
           });
         }, 1000);
+      } else if (code !== 0) {
+        // App wird beendet, nur loggen
+        console.log(`Backend-Prozess während App-Beenden mit Code ${code} beendet`);
       }
     });
 
@@ -357,33 +498,35 @@ function startBackendServer() {
       });
     });
 
-    // Health-Check: Prüfen, ob der Server wirklich antwortet
-    setTimeout(() => {
-      healthCheck().then(healthy => {
-        if (!healthy) {
-          console.error('Health Check failed: Server antwortet nicht auf Port 3030');
-          dialog.showMessageBox({
-            type: 'warning',
-            title: 'Server-Warnung',
-            message: 'Der Backend-Server wurde gestartet, antwortet aber nicht.',
-            detail: 'Dies kann an fehlenden Datenbankzugriffsrechten oder anderen Problemen liegen.',
-            buttons: ['OK']
-          });
-        } else {
-          console.log('Health Check passed: Server läuft korrekt');
-        }
-      });
-    }, 3000); // 3 Sekunden warten, dann prüfen
+
 
   } catch (error) {
     // Fehler abfangen, damit die App nicht abstürzt
     console.error('Schwerwiegender Fehler beim Starten des Backend-Servers:', error);
+    if (logStream) {
+      logStream.write(`\n[FATAL ERROR] ${error.message || error}\n`);
+      logStream.write(`Stacktrace: ${error.stack || 'Kein Stacktrace verfügbar'}\n`);
+      logStream.write(`Log-Datei: ${logFilePath}\n`);
+      logStream.end();
+    }
+    
+    const logFileMessage = logStream ? `\n\nLog-Datei: ${logFilePath}` : '\n\nLog-Datei konnte nicht erstellt werden';
+    
     dialog.showMessageBox({
       type: 'error',
       title: 'Backend-Server-Fehler',
       message: 'Beim Starten des Backend-Servers ist ein Fehler aufgetreten.',
-      detail: `Fehler: ${error.message || error}`,
-      buttons: ['OK']
+      detail: `Fehler: ${error.message || error}${logFileMessage}`,
+      buttons: logStream ? ['Log-Datei öffnen', 'OK'] : ['OK'],
+      defaultId: 0,
+      cancelId: 1
+    }).then(({ response }) => {
+      if (response === 0 && logStream) {
+        // Log-Datei öffnen
+        shell.openPath(logFilePath).catch(err => {
+          console.error('Konnte Log-Datei nicht öffnen:', err);
+        });
+      }
     });
   }
 }
@@ -649,6 +792,7 @@ app.on('before-quit', (event) => {
   event.preventDefault();
   
   console.log('App wird beendet, beende Backend-Prozess...');
+  isQuiting = true;
   
   if (backendProcess) {
     let cleanupTimeout;

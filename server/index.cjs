@@ -1,20 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import fs from 'fs-extra';
-import path from 'path';
-import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-
-// ESM-spezifische Anpassungen
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Umgebungsvariablen laden (ESM-kompatibel)
-import('dotenv').then(dotenv => {
-  dotenv.config();
-}).catch(err => {
-  console.warn('Dotenv konnte nicht geladen werden, verwende Standardwerte:', err.message);
-});
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs-extra');
+const path = require('path');
+const Database = require('better-sqlite3');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3030;
