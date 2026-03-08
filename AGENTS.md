@@ -24,3 +24,9 @@ Diese Datei enthält Informationen für agentische Coding-Agenten, die in diesem
 *   **Formatierung:** Obwohl es keine explizite Formatierungskonfigurationsdatei gibt, befolgen Sie die vorhandenen Formatierungskonventionen in der Codebasis. Verwenden Sie im Allgemeinen eine konsistente Einrückung (2 Leerzeichen) und Zeilenlängen.
 *   **Abhängigkeiten:** Verwenden Sie `npm`, um Abhängigkeiten zu verwalten. Fügen Sie Abhängigkeiten zu `package.json` hinzu und installieren Sie sie mit `npm install`.
 
+## Backend (Server) Konventionen
+
+*   **Modulsystem:** Das Backend unter `server/` verwendet **CommonJS** (`require`/`module.exports`), da es direkt von Node.js in der Electron-Umgebung ausgeführt wird. Die `package.json` ist mit `"type": "module"` für das Frontend konfiguriert.
+*   **Dateiendung:** Backend-Dateien müssen die Endung `.cjs` verwenden, um sie explizit als CommonJS-Module zu kennzeichnen und Konflikte mit dem ES-Modul-Standard des Projekts zu vermeiden.
+*   **Datenbank:** Die gesamte Datenbanklogik (better-sqlite3) ist in `server/index.cjs` gekapselt. Es gibt keine separaten `db.js`-Dateien.
+
