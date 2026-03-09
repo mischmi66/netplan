@@ -1,14 +1,14 @@
 {
   "name": "netplan",
   "private": true,
-  "version": "1.1.5",
+  "version": "1.1.6",
   "type": "module",
   "main": "electron/main.js",
   "author": "Divital",
   "description": "Netplan - Netzwerkplanungssoftware",
   "build": {
     "appId": "com.divital.netplan",
-    "productName": "Netplan",
+"productName": "Netplan",
     "directories": {
       "output": "release"
     },
@@ -17,18 +17,15 @@
       "electron",
       "package.json"
     ],
-    "asarUnpack": [
-      "server/**/*"
+    "extraResources": [
+      {
+        "from": "server",
+        "to": "server",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
-    "extraMetadata": {
-      "DB_PATH": "/Volumes/app-data/db/netplan.db",
-      "PORT": "3030",
-      "SERVER_PATH": "server",
-      "VITE_LOGO_PATH": "divital_logo.png",
-      "VITE_PROJECT_PLACEHOLDER_NAME": "Netplan",
-      "VITE_LOCATION_PLACEHOLDER_NAME": "Ihr Standort",
-      "VITE_API_URL": "http://localhost:3030/api"
-    },
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity"
