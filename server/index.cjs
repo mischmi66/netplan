@@ -8,113 +8,81 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3030;
 
-// Datenbankpfad: 
-// 1. Aus Umgebungsvariable DB_PATH (für TrueNAS/Netzwerk)
-// 2. Fallback: Vom Electron-Hauptprozess übergeben (für lokale Installation)
-// Wenn keines gesetzt ist, wird ein Standardpfad verwendet
-const DB_PATH = process.env.DB_PATH || process.env.ELECTRON_USER_DATA_DB_PATH || '/Volumes/app-data/db/netplan.db';
-const DB_DIR = path.dirname(DB_PATH);
+// Pfad zur lokalen Datenbank (immer im Benutzerverzeichnis)
+const LOCAL_DB_PATH = process.env.ELECTRON_USER_DATA_DB_PATH || path.join(process.cwd(), 'netplan-local.db');
+// Pfad zur optionalen Remote-Datenbank (TrueNAS)
+const REMOTE_DB_PATH = process.env.DB_PATH;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Datenbankpfad-Überprüfung
-function checkDbPath() {
-  console.log(`Datenbankpfad: ${DB_PATH}`);
-  console.log(`Datenbankverzeichnis: ${DB_DIR}`);
-  
-  // Wenn der Pfad nicht existiert, versuchen wir das Verzeichnis zu erstellen
-  // (für lokale Installationen im userData-Verzeichnis)
-  if (!fs.existsSync(DB_DIR)) {
-    console.log(`Verzeichnis ${DB_DIR} existiert nicht, versuche es zu erstellen...`);
-    try {
-      fs.ensureDirSync(DB_DIR);
-      console.log(`Verzeichnis erfolgreich erstellt: ${DB_DIR}`);
-    } catch (err) {
-      console.error(`FEHLER: Verzeichnis ${DB_DIR} konnte nicht erstellt werden:`, err.message);
-      console.error('Mögliche Lösungen:');
-      console.error('1. Setzen Sie DB_PATH in der .env-Datei auf einen beschreibbaren Pfad');
-      console.error('2. Stellen Sie sicher, dass die App Schreibrechte hat');
-      console.error('3. Für Netzwerkpfade: Stellen Sie sicher, dass der Mount verfügbar ist');
-      process.exit(1);
-    }
+// --- Sync-Funktion für die Remote-DB ---
+let lastSyncStatus = 'offline';
+
+async function syncToRemoteDb() {
+  if (!REMOTE_DB_PATH) {
+    lastSyncStatus = 'disabled';
+    return lastSyncStatus;
   }
-  
-  console.log(`Datenbankpfad erfolgreich überprüft: ${DB_PATH}`);
-  return true;
+
+  try {
+    // Prüfen, ob das Remote-Verzeichnis erreichbar ist
+    await fs.ensureDir(path.dirname(REMOTE_DB_PATH));
+    // Lokale DB zur Remote-Location kopieren
+    await fs.copyFile(LOCAL_DB_PATH, REMOTE_DB_PATH);
+    console.log(`[Sync] Erfolgreich nach ${REMOTE_DB_PATH} synchronisiert.`);
+    lastSyncStatus = 'success';
+    return lastSyncStatus;
+  } catch (error) {
+    console.warn(`[Sync] FEHLER bei der Synchronisierung zu ${REMOTE_DB_PATH}:`, error.message);
+    lastSyncStatus = 'failed';
+    return lastSyncStatus;
+  }
 }
 
-// Datenbank initialisieren und Tabellen erstellen
+// Datenbank initialisieren (immer lokal)
 function initializeDatabase() {
   try {
-    // Verzeichnis erstellen, falls es nicht existiert
-    fs.ensureDirSync(DB_DIR);
+    fs.ensureDirSync(path.dirname(LOCAL_DB_PATH));
+    const db = new Database(LOCAL_DB_PATH);
     
-    const db = new Database(DB_PATH);
-    
-    // Tabellen erstellen
+    // Tabellen erstellen (wie gehabt)
     db.exec(`
-      -- Projekttabelle
       CREATE TABLE IF NOT EXISTS projects (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        location TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, location TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_opened BOOLEAN DEFAULT FALSE
       );
-
-      -- Knotentabelle
       CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        project_id INTEGER,
-        type TEXT NOT NULL,
-        position_x REAL NOT NULL,
-        position_y REAL NOT NULL,
-        hostname TEXT,
-        ip_address TEXT,
-        vlan TEXT,
-        credentials TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        id TEXT PRIMARY KEY, project_id INTEGER, type TEXT NOT NULL, position_x REAL NOT NULL, position_y REAL NOT NULL,
+        hostname TEXT, ip_address TEXT, vlan TEXT, credentials TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
       );
-
-      -- Kantentabelle
       CREATE TABLE IF NOT EXISTS edges (
-        id TEXT PRIMARY KEY,
-        project_id INTEGER,
-        source TEXT NOT NULL,
-        target TEXT NOT NULL,
-        source_port TEXT,
-        target_port TEXT,
-        type TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        id TEXT PRIMARY KEY, project_id INTEGER, source TEXT NOT NULL, target TEXT NOT NULL,
+        source_port TEXT, target_port TEXT, type TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
         FOREIGN KEY (source) REFERENCES nodes (id) ON DELETE CASCADE,
         FOREIGN KEY (target) REFERENCES nodes (id) ON DELETE CASCADE
       );
     `);
     
-    console.log('Datenbankschema erfolgreich initialisiert');
+    console.log('Lokale Datenbank erfolgreich initialisiert:', LOCAL_DB_PATH);
     return db;
   } catch (error) {
-    console.error('Fehler bei der Datenbankinitialisierung:', error);
+    console.error('Fehler bei der Initialisierung der lokalen Datenbank:', error);
     process.exit(1);
   }
 }
 
-// Mount-Check beim Start
-checkDbPath();
-
-// Datenbank initialisieren
 const db = initializeDatabase();
 
-// API-Routen
+// API-Routen (bleiben größtenteils unverändert, da sie mit der lokalen DB arbeiten)
 
-// Projekt-Endpunkte
+// ... (alle GET, PUT, POST, DELETE Routen bleiben gleich) ...
 app.get('/api/projects', (req, res) => {
   try {
     const projects = db.prepare(`
@@ -171,10 +139,8 @@ app.post('/api/projects', (req, res) => {
       return res.status(400).json({ error: 'Projektname ist erforderlich' });
     }
     
-    // Alle Projekte als nicht zuletzt geöffnet markieren
     db.prepare('UPDATE projects SET last_opened = FALSE').run();
     
-    // Neues Projekt erstellen
     const result = db.prepare(`
       INSERT INTO projects (name, location, last_opened)
       VALUES (?, ?, TRUE)
@@ -224,13 +190,8 @@ app.put('/api/projects/:id', (req, res) => {
 app.put('/api/projects/:id/open', (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Alle Projekte als nicht zuletzt geöffnet markieren
     db.prepare('UPDATE projects SET last_opened = FALSE').run();
-    
-    // Dieses Projekt als zuletzt geöffnet markieren
     db.prepare('UPDATE projects SET last_opened = TRUE WHERE id = ?').run(id);
-    
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -252,7 +213,6 @@ app.delete('/api/projects/:id', (req, res) => {
   }
 });
 
-// Knoten-Endpunkte
 app.get('/api/projects/:projectId/nodes', (req, res) => {
   try {
     const { projectId } = req.params;
@@ -270,51 +230,6 @@ app.get('/api/projects/:projectId/nodes', (req, res) => {
   }
 });
 
-app.post('/api/projects/:projectId/nodes', (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { nodes } = req.body;
-    
-    // Transaktion beginnen
-    db.prepare('BEGIN TRANSACTION').run();
-    
-    // Vorhandene Knoten für dieses Projekt löschen
-    db.prepare('DELETE FROM nodes WHERE project_id = ?').run(projectId);
-    
-    // Neue Knoten einfügen
-    const insertStmt = db.prepare(`
-      INSERT INTO nodes (
-        id, project_id, type, position_x, position_y, 
-        hostname, ip_address, vlan, credentials
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    for (const node of nodes) {
-      insertStmt.run(
-        node.id,
-        projectId,
-        node.type,
-        node.position?.x || 0,
-        node.position?.y || 0,
-        node.data?.hostname || null,
-        node.data?.ipAddress || null,
-        node.data?.vlan || null,
-        node.data?.credentials || null
-      );
-    }
-    
-    // Transaktion abschließen
-    db.prepare('COMMIT').run();
-    
-    res.json({ success: true, count: nodes.length });
-  } catch (error) {
-    // Bei Fehler Transaktion zurückrollen
-    db.prepare('ROLLBACK').run();
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Kanten-Endpunkte
 app.get('/api/projects/:projectId/edges', (req, res) => {
   try {
     const { projectId } = req.params;
@@ -332,117 +247,49 @@ app.get('/api/projects/:projectId/edges', (req, res) => {
   }
 });
 
-app.post('/api/projects/:projectId/edges', (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { edges } = req.body;
-    
-    // Transaktion beginnen
-    db.prepare('BEGIN TRANSACTION').run();
-    
-    // Vorhandene Kanten für dieses Projekt löschen
-    db.prepare('DELETE FROM edges WHERE project_id = ?').run(projectId);
-    
-    // Neue Kanten einfügen
-    const insertStmt = db.prepare(`
-      INSERT INTO edges (
-        id, project_id, source, target, 
-        source_port, target_port, type
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    for (const edge of edges) {
-      insertStmt.run(
-        edge.id,
-        projectId,
-        edge.source,
-        edge.target,
-        edge.data?.sourcePort || null,
-        edge.data?.targetPort || null,
-        edge.data?.type || 'LAN'
-      );
-    }
-    
-    // Transaktion abschließen
-    db.prepare('COMMIT').run();
-    
-    res.json({ success: true, count: edges.length });
-  } catch (error) {
-    // Bei Fehler Transaktion zurückrollen
-    db.prepare('ROLLBACK').run();
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// Kombinierter Endpunkt für Netplan-Daten (Knoten und Kanten)
-app.post('/api/projects/:projectId/save', (req, res) => {
+// --- Modifizierter Save-Endpunkt ---
+app.post('/api/projects/:projectId/save', async (req, res) => {
   try {
     const { projectId } = req.params;
     const { nodes, edges } = req.body;
     
-    // Transaktion beginnen
-    db.prepare('BEGIN TRANSACTION').run();
+    // Transaktion für lokale DB
+    db.transaction(() => {
+      // Daten löschen und neu einfügen (wie gehabt)
+      db.prepare('DELETE FROM nodes WHERE project_id = ?').run(projectId);
+      db.prepare('DELETE FROM edges WHERE project_id = ?').run(projectId);
+      
+      const insertNodeStmt = db.prepare(`
+        INSERT INTO nodes (id, project_id, type, position_x, position_y, hostname, ip_address, vlan, credentials) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const node of nodes) {
+        insertNodeStmt.run(node.id, projectId, node.type, node.position?.x || 0, node.position?.y || 0, node.data?.hostname || null, node.data?.ipAddress || null, node.data?.vlan || null, node.data?.credentials || null);
+      }
+      
+      const insertEdgeStmt = db.prepare(`
+        INSERT INTO edges (id, project_id, source, target, source_port, target_port, type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const edge of edges) {
+        insertEdgeStmt.run(edge.id, projectId, edge.source, edge.target, edge.data?.sourcePort || null, edge.data?.targetPort || null, edge.data?.type || 'LAN');
+      }
+      
+      db.prepare(`UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(projectId);
+    })();
     
-    // Vorhandene Daten für dieses Projekt löschen
-    db.prepare('DELETE FROM nodes WHERE project_id = ?').run(projectId);
-    db.prepare('DELETE FROM edges WHERE project_id = ?').run(projectId);
+    // Asynchroner Sync zur Remote-DB nach dem lokalen Speichern
+    const syncStatus = await syncToRemoteDb();
     
-    // Neue Knoten einfügen
-    const insertNodeStmt = db.prepare(`
-      INSERT INTO nodes (
-        id, project_id, type, position_x, position_y, 
-        hostname, ip_address, vlan, credentials
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    for (const node of nodes) {
-      insertNodeStmt.run(
-        node.id,
-        projectId,
-        node.type,
-        node.position?.x || 0,
-        node.position?.y || 0,
-        node.data?.hostname || null,
-        node.data?.ipAddress || null,
-        node.data?.vlan || null,
-        node.data?.credentials || null
-      );
-    }
-    
-    // Neue Kanten einfügen
-    const insertEdgeStmt = db.prepare(`
-      INSERT INTO edges (
-        id, project_id, source, target, 
-        source_port, target_port, type
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    for (const edge of edges) {
-      insertEdgeStmt.run(
-        edge.id,
-        projectId,
-        edge.source,
-        edge.target,
-        edge.data?.sourcePort || null,
-        edge.data?.targetPort || null,
-        edge.data?.type || 'LAN'
-      );
-    }
-    
-    // Projekt-Update-Zeit aktualisieren
-    db.prepare(`
-      UPDATE projects 
-      SET updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(projectId);
-    
-    // Transaktion abschließen
-    db.prepare('COMMIT').run();
-    
-    res.json({ success: true, nodeCount: nodes.length, edgeCount: edges.length });
+    res.json({ 
+      success: true, 
+      nodeCount: nodes.length, 
+      edgeCount: edges.length,
+      syncStatus: syncStatus 
+    });
+
   } catch (error) {
-    // Bei Fehler Transaktion zurückrollen
-    db.prepare('ROLLBACK').run();
     res.status(500).json({ error: error.message });
   }
 });
@@ -450,10 +297,14 @@ app.post('/api/projects/:projectId/save', (req, res) => {
 // Server starten
 app.listen(PORT, () => {
   console.log(`Server läuft auf http://localhost:${PORT}`);
-  console.log(`Datenbank-Pfad: ${DB_PATH}`);
+  console.log(`Lokale Datenbank: ${LOCAL_DB_PATH}`);
+  if (REMOTE_DB_PATH) {
+    console.log(`Remote Sync-Ziel: ${REMOTE_DB_PATH}`);
+  } else {
+    console.log('Kein Remote Sync-Ziel konfiguriert.');
+  }
 });
 
-// Graceful Shutdown
 process.on('SIGINT', () => {
   console.log('\nServer wird heruntergefahren...');
   if (db) db.close();

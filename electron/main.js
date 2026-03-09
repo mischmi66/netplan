@@ -760,69 +760,20 @@ function createWindowWithoutServer() {
   });
 }
 
-// Alle Fenster schließen (außer auf macOS)
 app.on('window-all-closed', () => {
-  // Backend-Prozess sauber beenden
-  if (backendProcess) {
-    console.log('Beende Backend-Prozess...');
-    try {
-      // Signal senden für sauberes Beenden
-      backendProcess.kill('SIGTERM');
-      
-      // Timeout: Nach 2 Sekunden mit SIGKILL erzwingen
-      setTimeout(() => {
-        if (backendProcess) {
-          console.log('Prozess reagiert nicht auf SIGTERM, erzwinge Beenden...');
-          backendProcess.kill('SIGKILL');
-        }
-      }, 2000);
-    } catch (err) {
-      console.error('Fehler beim Beenden des Backend-Prozesses:', err);
-    }
-  }
-
+  // Auf macOS ist es üblich, dass die Anwendung aktiv bleibt, 
+  // auch wenn alle Fenster geschlossen sind.
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
 // Vor dem Beenden Backend-Prozess beenden
-app.on('before-quit', (event) => {
-  // Verhindere Standard-Beenden bis Backend-Prozess beendet ist
-  event.preventDefault();
-  
-  console.log('App wird beendet, beende Backend-Prozess...');
+app.on('before-quit', () => {
   isQuiting = true;
-  
   if (backendProcess) {
-    let cleanupTimeout;
-    
-    try {
-      // Sauberes Beenden versuchen
-      backendProcess.kill('SIGTERM');
-      
-      // Warten auf Prozess-Ende
-      backendProcess.once('close', (code) => {
-        console.log(`Backend-Prozess sauber beendet mit Code ${code}`);
-        clearTimeout(cleanupTimeout);
-        app.exit(code === 0 ? 0 : 1);
-      });
-      
-      // Timeout: Nach 3 Sekunden erzwingen
-      cleanupTimeout = setTimeout(() => {
-        if (backendProcess) {
-          console.log('Timeout erreicht, erzwinge Beenden...');
-          backendProcess.kill('SIGKILL');
-          app.exit(1);
-        }
-      }, 3000);
-    } catch (err) {
-      console.error('Fehler beim Beenden des Backend-Prozesses:', err);
-      clearTimeout(cleanupTimeout);
-      app.exit(1);
-    }
-  } else {
-    app.exit(0);
+    console.log('App wird beendet, beende Backend-Prozess...');
+    backendProcess.kill();
   }
 });
 

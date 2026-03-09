@@ -14,6 +14,8 @@ import type {
 import { netplanApi } from '../services/api';
 import type { NodeData, EdgeData } from '../types.ts';
 
+type SyncStatus = 'online' | 'offline' | 'syncing' | 'disabled';
+
 interface NetplanState {
   nodes: Node<NodeData>[];
   edges: Edge<EdgeData>[];
@@ -22,6 +24,7 @@ interface NetplanState {
   loading: boolean;
   error: string | null;
   toastMessage: string | null;
+  syncStatus: SyncStatus;
   
   // Aktionen
   showToast: (message: string) => void;
@@ -50,6 +53,7 @@ const useNetplanStore = create<NetplanState>((set, get) => ({
   loading: false,
   error: null,
   toastMessage: null,
+  syncStatus: 'online',
 
   showToast: (message) => {
     set({ toastMessage: message });
@@ -57,7 +61,7 @@ const useNetplanStore = create<NetplanState>((set, get) => ({
   },
 
   resetCanvas: () => {
-    set({ nodes: [], edges: [], selectedNode: null, selectedEdge: null });
+    set({ nodes: [], edges: [], selectedNode: null, selectedEdge: null, syncStatus: 'online' });
   },
   
   setNodes: (nodes) => set({ nodes }),
@@ -133,15 +137,21 @@ const useNetplanStore = create<NetplanState>((set, get) => ({
   },
   
   saveToDatabase: async (projectId) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, syncStatus: 'syncing' });
     try {
       const { nodes, edges } = get();
       
-      await netplanApi.saveNetplan(projectId, { nodes, edges });
+      const response = await netplanApi.saveNetplan(projectId, { nodes, edges });
       
-      set({ loading: false });
+      const syncStatus = response.data.syncStatus;
+      if (syncStatus === 'failed') {
+        set({ loading: false, syncStatus: 'offline' });
+      } else {
+        set({ loading: false, syncStatus: 'online' });
+      }
+
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.message, loading: false, syncStatus: 'offline' });
     }
   },
   

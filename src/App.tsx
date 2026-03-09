@@ -6,6 +6,7 @@ import NetplanCanvas from './components/canvas/NetplanCanvas';
 import useProjectStore from './store/useProjectStore';
 import useNetplanStore from './store/useNetplanStore';
 import Toast from './components/ui/Toast';
+import StatusBar from './components/layout/StatusBar';
 
 const App: React.FC = () => {
   const { currentProject, loadLastOpenedProject } = useProjectStore();
@@ -36,6 +37,7 @@ const App: React.FC = () => {
           onClose={() => showToast('')} 
         />
       )}
+      <StatusBar />
     </div>
   );
 };
