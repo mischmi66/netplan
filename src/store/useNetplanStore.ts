@@ -9,8 +9,7 @@ import type {
   Node, 
   OnNodesChange,
   OnEdgesChange,
-  OnConnect,
-  Connection
+  OnConnect
 } from 'reactflow';
 import { netplanApi } from '../services/api';
 import type { NodeData, EdgeData } from '../types.ts';
@@ -77,15 +76,11 @@ const useNetplanStore = create<NetplanState>((set, get) => ({
   },
   
   onConnect: (connection) => {
-    // Neue Kante mit dem entsprechenden Typ basierend auf Quell- und Zielknoten erstellen
-    const sourceNode = get().nodes.find(node => node.id === connection.source);
-    const targetNode = get().nodes.find(node => node.id === connection.target);
-    
-    // Standardmäßig LAN-Verbindung, könnte aber Logik implementiert werden, um basierend auf Knotentypen zu entscheiden
+    // Standardmäßig LAN-Verbindung
     const edgeType: EdgeData['type'] = 'LAN';
     
     set({
-      edges: addEdge<EdgeData>({
+      edges: addEdge({
         ...connection,
         data: { type: edgeType, sourcePort: '', targetPort: '' }
       }, get().edges),
@@ -110,10 +105,27 @@ const useNetplanStore = create<NetplanState>((set, get) => ({
     set({
       edges: get().edges.map((edge) => {
         if (edge.id === edgeId) {
-          return {
+          const mergedData: EdgeData = { ...edge.data, ...data } as EdgeData;
+
+          const newEdge: Edge<EdgeData> = {
             ...edge,
-            data: { ...edge.data, ...data },
+            data: mergedData,
           };
+
+          if (data.type) {
+            newEdge.type = data.type; // Passt den Edge-Typ für die benutzerdefinierten Edge-Komponenten an
+            if (data.type === 'WLAN') {
+              newEdge.style = { strokeDasharray: '5 5', stroke: '#888' };
+            } else if (data.type === 'Fiber') {
+              // Stil für Glasfaser, z.B. eine andere Farbe
+              newEdge.style = { stroke: '#ff00ff' }; // Magenta für Glasfaser
+            } else {
+              // Standard-Stil für LAN zurücksetzen
+              newEdge.style = {}; 
+            }
+          }
+          
+          return newEdge;
         }
         return edge;
       }),

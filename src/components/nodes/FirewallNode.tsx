@@ -6,27 +6,39 @@ import type { NodeData } from '../../types.ts';
 
 const FirewallNode: React.FC<NodeProps<NodeData>> = ({ data }) => {
   return (
-    <div className="min-w-[150px] bg-white border-2 border-firewall rounded shadow-md">
+    <div className="min-w-[150px] bg-white border-2 border-firewall rounded shadow-md relative">
       <Handle
         type="target"
         position={Position.Top}
         className="!bg-firewall !w-3 !h-3"
+        isConnectable={true}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         className="!bg-firewall !w-3 !h-3"
+        isConnectable={true}
       />
       <Handle
         type="target"
         position={Position.Left}
         className="!bg-firewall !w-3 !h-3"
+        isConnectable={true}
       />
       <Handle
         type="source"
         position={Position.Right}
         className="!bg-firewall !w-3 !h-3"
+        isConnectable={true}
       />
+
+      {data.overlayIcon && (
+        <img
+          src={`/iconset/${data.overlayIcon}`}
+          alt="Overlay Icon"
+          className="absolute top-1 right-1 w-5 h-5 object-contain"
+        />
+      )}
       
       <div className="p-2">
         <div className="flex items-center justify-center mb-2">

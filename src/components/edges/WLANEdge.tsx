@@ -11,8 +11,6 @@ import type { EdgeData } from '../../types.ts';
 
 const WLANEdge: React.FC<EdgeProps<EdgeData>> = ({
   id,
-  source,
-  target,
   sourceX,
   sourceY,
   targetX,
@@ -21,8 +19,9 @@ const WLANEdge: React.FC<EdgeProps<EdgeData>> = ({
   targetPosition,
   data,
   selected,
+  style,
 }) => {
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
+  const [edgePath] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition: sourcePosition || Position.Bottom,
@@ -37,9 +36,10 @@ const WLANEdge: React.FC<EdgeProps<EdgeData>> = ({
         id={id}
         className={`react-flow__edge-path ${selected ? 'stroke-[3px]' : 'stroke-[2px]'}`}
         d={edgePath}
-        strokeDasharray="5,5"
-        stroke="#333"
         fill="none"
+        stroke="#888" // Default color
+        strokeDasharray="5 5" // Default dash
+        {...style} // Apply styles from store, overriding defaults
       />
       
       {data?.sourcePort && (

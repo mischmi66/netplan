@@ -25,6 +25,7 @@ import CloudNode from '../nodes/CloudNode';
 import PCNode from '../nodes/PCNode';
 import AccessPointNode from '../nodes/AccessPointNode';
 import AnnotationNode from '../nodes/AnnotationNode';
+import IconNode from '../nodes/IconNode';
 
 import LANEdge from '../edges/LANEdge';
 import WLANEdge from '../edges/WLANEdge';
@@ -41,6 +42,7 @@ const nodeTypes = {
   pc: PCNode,
   accessPoint: AccessPointNode,
   annotation: AnnotationNode,
+  icon: IconNode,
 };
 
 const edgeTypes = {
@@ -74,12 +76,14 @@ const NetplanCanvas: React.FC = () => {
       if (!reactFlowWrapper.current || !reactFlowInstance) return;
       
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-      const type = event.dataTransfer.getData('application/reactflow');
+      const dataString = event.dataTransfer.getData('application/reactflow');
       
       // Prüfen, ob das fallengelassene Element gültig ist
-      if (typeof type === 'undefined' || !type) {
+      if (typeof dataString === 'undefined' || !dataString) {
         return;
       }
+
+      const { type, ...data } = JSON.parse(dataString);
       
       const position = reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left,
@@ -91,7 +95,7 @@ const NetplanCanvas: React.FC = () => {
         id: `${type}_${Date.now()}`,
         type,
         position,
-        data: { hostname: '', ipAddress: '', vlan: '', credentials: '' },
+        data: { hostname: '', ipAddress: '', vlan: '', credentials: '', ...data },
       };
       
       setNodes([...nodes, newNode]);
@@ -166,6 +170,7 @@ const NetplanCanvas: React.FC = () => {
           fitView
           snapToGrid
           snapGrid={[15, 15]}
+          connectionRadius={30}
           defaultEdgeOptions={{
             type: 'LAN',
             data: { type: 'LAN' }

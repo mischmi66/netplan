@@ -11,8 +11,6 @@ import type { EdgeData } from '../../types.ts';
 
 const LANEdge: React.FC<EdgeProps<EdgeData>> = ({
   id,
-  source,
-  target,
   sourceX,
   sourceY,
   targetX,
@@ -21,8 +19,9 @@ const LANEdge: React.FC<EdgeProps<EdgeData>> = ({
   targetPosition,
   data,
   selected,
+  style,
 }) => {
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
+  const [edgePath] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition: sourcePosition || Position.Bottom,
@@ -37,8 +36,9 @@ const LANEdge: React.FC<EdgeProps<EdgeData>> = ({
         id={id}
         className={`react-flow__edge-path ${selected ? 'stroke-[3px]' : 'stroke-[2px]'}`}
         d={edgePath}
-        stroke="#333"
         fill="none"
+        stroke="#333"
+        {...style}
       />
       
       {data?.sourcePort && (

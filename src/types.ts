@@ -4,6 +4,8 @@ export interface NodeData {
   ipAddress?: string;
   vlan?: string;
   credentials?: string;
+  icon?: string;
+  overlayIcon?: string;
 }
 
 // Edge-Typen

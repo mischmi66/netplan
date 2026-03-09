@@ -1,32 +1,43 @@
 # AGENTS.md
 
-Diese Datei enthält Informationen für agentische Coding-Agenten, die in diesem Repository arbeiten.
+This file contains information for agentic coding agents working in this repository.
 
-## Build/Lint/Test Befehle
+## Build/Lint/Test Commands
 
-*   **Build:** `npm run build` (Führt `tsc && vite build` aus)
-*   **Lint:** `npm run lint` (Führt `eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0` aus)
-*   **Typüberprüfung:** Der Build-Prozess beinhaltet die TypeScript-Typüberprüfung (`tsc`).
+*   **Build:** `npm run build` (Runs `tsc && vite build`)
+*   **Lint:** `npm run lint` (Runs `eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0`)
+*   **Type-checking:** The build process includes TypeScript type-checking (`tsc`).
+*   **Running a single test:** There is no test runner configured in `package.json`. If you add a test runner, please document the command for running a single test here.
 
-## Code Style Richtlinien
+## Code Style Guidelines
 
-*   **Sprache:** TypeScript
+*   **Language:** TypeScript
 *   **JSX:** React JSX
-*   **Target ECMAScript Version:** ES2022 (für App), ES2023 (für Node)
-*   **Modulsystem:** ESNext
-*   **Linting:** ESLint wird für das Linting verwendet. Siehe das `lint`-Skript in `package.json` für die Konfiguration.
-*   **Strict Mode:** Der Strict Mode von TypeScript ist aktiviert.
-*   **Imports:** Verwenden Sie die ES-Modulsyntax (z. B. `import ... from '...'`).
-*   **Dateiendungen:** Verwenden Sie `.ts` für TypeScript-Dateien und `.tsx` für React-Komponenten.
-*   **Namenskonventionen:** Verwenden Sie Standard-camelCase für Variablen und Funktionen und PascalCase für React-Komponenten.
-*   **Fehlerbehandlung:** Implementieren Sie eine ordnungsgemäße Fehlerbehandlung mit `try...catch`-Blöcken und aussagekräftigen Fehlermeldungen.
-*   **Types:** Verwenden Sie explizite Typen für Variablen, Funktionsparameter und Rückgabetypen.
-*   **Formatierung:** Obwohl es keine explizite Formatierungskonfigurationsdatei gibt, befolgen Sie die vorhandenen Formatierungskonventionen in der Codebasis. Verwenden Sie im Allgemeinen eine konsistente Einrückung (2 Leerzeichen) und Zeilenlängen.
-*   **Abhängigkeiten:** Verwenden Sie `npm`, um Abhängigkeiten zu verwalten. Fügen Sie Abhängigkeiten zu `package.json` hinzu und installieren Sie sie mit `npm install`.
+*   **Target ECMAScript Version:** ES2022 (for app), ES2023 (for Node)
+*   **Module System:** ESNext for the frontend, CommonJS for the backend.
+*   **Linting:** ESLint is used for linting. See the `lint` script in `package.json` for the configuration.
+*   **Strict Mode:** TypeScript's strict mode is enabled.
+*   **Imports:** Use ES module syntax (e.g., `import ... from '...'`) for the frontend. Use CommonJS syntax (e.g., `require('...')`) for the backend.
+*   **File Extensions:** Use `.ts` for TypeScript files and `.tsx` for React components. Backend files must use the `.cjs` extension.
+*   **Naming Conventions:** Use standard camelCase for variables and functions and PascalCase for React components.
+*   **Error Handling:** Implement proper error handling with `try...catch` blocks and meaningful error messages.
+*   **Types:** Use explicit types for variables, function parameters, and return types.
+*   **Formatting:** Although there is no explicit formatter configuration file, please follow the existing formatting conventions in the codebase. Generally, use consistent indentation (2 spaces) and line lengths.
 
-## Backend (Server) Konventionen
+## Project Structure
 
-*   **Modulsystem:** Das Backend unter `server/` verwendet **CommonJS** (`require`/`module.exports`), da es direkt von Node.js in der Electron-Umgebung ausgeführt wird. Die `package.json` ist mit `"type": "module"` für das Frontend konfiguriert.
-*   **Dateiendung:** Backend-Dateien müssen die Endung `.cjs` verwenden, um sie explizit als CommonJS-Module zu kennzeichnen und Konflikte mit dem ES-Modul-Standard des Projekts zu vermeiden.
-*   **Datenbank:** Die gesamte Datenbanklogik (better-sqlite3) ist in `server/index.cjs` gekapselt. Es gibt keine separaten `db.js`-Dateien.
+*   `src/`: Contains the frontend source code (React, TypeScript).
+*   `server/`: Contains the backend source code (Express, Node.js, better-sqlite3).
+*   `electron/`: Contains the Electron main process code.
+*   `dist/`: Contains the built frontend code.
+*   `release/`: Contains the packaged application.
 
+## Backend (Server) Conventions
+
+*   **Module System:** The backend in `server/` uses **CommonJS** (`require`/`module.exports`) as it is executed directly by Node.js in the Electron environment. The `package.json` is configured with `"type": "module"` for the frontend.
+*   **File Extension:** Backend files must use the `.cjs` extension to be explicitly marked as CommonJS modules and to avoid conflicts with the project's ES module standard.
+*   **Database:** All database logic (better-sqlite3) is encapsulated in `server/index.cjs`. There are no separate `db.js` files.
+
+## Dependencies
+
+*   Use `npm` to manage dependencies. Add dependencies to `package.json` and install them with `npm install`.

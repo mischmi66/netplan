@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import useNetplanStore from '../../store/useNetplanStore';
+import IconGallery from '../shared/IconGallery';
 
 const InspectorPanel: React.FC = () => {
   const { selectedNode, selectedEdge, updateNodeData, updateEdgeData } = useNetplanStore();
@@ -37,29 +38,24 @@ const InspectorPanel: React.FC = () => {
   }, [selectedEdge]);
   
   // Knotendaten speichern
-  const saveNodeData = () => {
+const saveNodeData = () => {
     if (selectedNode) {
       // Für annotationNodes verwenden wir ipAddress als Textfeld
       const nodeData = selectedNode.type === 'annotation' 
         ? { hostname, ipAddress, vlan: '', credentials: '' }
-        : { hostname, ipAddress, vlan, credentials };
+        : { hostname, ipAddress, vlan, credentials, overlayIcon: selectedNode.data?.overlayIcon };
       
       updateNodeData(selectedNode.id, nodeData);
     }
   };
-  
-  // Kantendaten speichern
-  const saveEdgeData = () => {
-    if (selectedEdge) {
-      updateEdgeData(selectedEdge.id, {
-        sourcePort,
-        targetPort,
-        type: edgeType
-      });
+
+  const handleOverlayIconSelect = (iconName: string) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { overlayIcon: iconName });
     }
   };
-  
-  // Umschalten der Anzeige von Zugangsdaten
+   
+   // Umschalten der Anzeige von Zugangsdaten
   const toggleCredentialsVisibility = () => {
     setShowCredentials(!showCredentials);
   };
@@ -151,6 +147,13 @@ const InspectorPanel: React.FC = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {selectedNode.type !== 'annotation' && selectedNode.type !== 'icon' && (
+            <IconGallery
+              selectedValue={selectedNode.data?.overlayIcon}
+              onSelect={handleOverlayIconSelect}
+            />
           )}
           
           <button

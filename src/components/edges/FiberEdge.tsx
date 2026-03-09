@@ -11,8 +11,6 @@ import type { EdgeData } from '../../types.ts';
 
 const FiberEdge: React.FC<EdgeProps<EdgeData>> = ({
   id,
-  source,
-  target,
   sourceX,
   sourceY,
   targetX,
@@ -21,8 +19,9 @@ const FiberEdge: React.FC<EdgeProps<EdgeData>> = ({
   targetPosition,
   data,
   selected,
+  style,
 }) => {
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
+  const [edgePath] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition: sourcePosition || Position.Bottom,
@@ -37,8 +36,9 @@ const FiberEdge: React.FC<EdgeProps<EdgeData>> = ({
         id={id}
         className={`react-flow__edge-path ${selected ? 'stroke-[4px]' : 'stroke-[3px]'}`}
         d={edgePath}
-        stroke="#5C80BC"
         fill="none"
+        stroke="#ff00ff" // Default color, will be overridden by style from store
+        {...style}
       />
       
       {data?.sourcePort && (
