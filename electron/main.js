@@ -217,8 +217,14 @@ function startBackendServer() {
     logStream.write(`Platform: ${process.platform} ${process.arch}\n`);
     logStream.write(`DB_PATH aus env: ${process.env.DB_PATH || 'Nicht gesetzt'}\n`);
     
-    // Einheitlicher und robuster Pfad für Dev- und Produktionsmodus
-    const backendPath = path.join(__dirname, '../server/index.cjs');
+    let backendPath;
+    if (isDev) {
+      backendPath = path.join(__dirname, '../server/index.cjs');
+    } else {
+      // In der gepackten App liegt der Server-Ordner im 'app.asar.unpacked' Verzeichnis
+      const unpackedPath = path.join(path.dirname(app.getAppPath()), 'app.asar.unpacked');
+      backendPath = path.join(unpackedPath, 'server/index.cjs');
+    }
 
     console.log('[Main Process] Versuche Backend zu starten von:', backendPath);
     

@@ -29,15 +29,6 @@
       "VITE_LOCATION_PLACEHOLDER_NAME": "Ihr Standort",
       "VITE_API_URL": "http://localhost:3030/api"
     },
-    "extraResources": [
-      {
-        "from": "server",
-        "to": "server",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity"
