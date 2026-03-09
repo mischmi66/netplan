@@ -6,19 +6,18 @@ import IconGallery from '../shared/IconGallery';
 const InspectorPanel: React.FC = () => {
   const { selectedNode, selectedEdge, updateNodeData, updateEdgeData } = useNetplanStore();
   
-  // Knoten-Daten-Status
+  // Node state
   const [hostname, setHostname] = useState('');
   const [ipAddress, setIpAddress] = useState('');
   const [vlan, setVlan] = useState('');
   const [credentials, setCredentials] = useState('');
   const [showCredentials, setShowCredentials] = useState(false);
   
-  // Kanten-Daten-Status
+  // Edge state
   const [sourcePort, setSourcePort] = useState('');
   const [targetPort, setTargetPort] = useState('');
   const [edgeType, setEdgeType] = useState<'LAN' | 'WLAN' | 'Fiber'>('LAN');
   
-  // Formular aktualisieren, wenn sich der ausgewählte Knoten ändert
   useEffect(() => {
     if (selectedNode) {
       setHostname(selectedNode.data?.hostname || '');
@@ -28,7 +27,6 @@ const InspectorPanel: React.FC = () => {
     }
   }, [selectedNode]);
   
-  // Formular aktualisieren, wenn sich die ausgewählte Kante ändert
   useEffect(() => {
     if (selectedEdge) {
       setSourcePort(selectedEdge.data?.sourcePort || '');
@@ -37,15 +35,22 @@ const InspectorPanel: React.FC = () => {
     }
   }, [selectedEdge]);
   
-  // Knotendaten speichern
-const saveNodeData = () => {
+  const saveNodeData = () => {
     if (selectedNode) {
-      // Für annotationNodes verwenden wir ipAddress als Textfeld
       const nodeData = selectedNode.type === 'annotation' 
-        ? { hostname, ipAddress, vlan: '', credentials: '' }
+        ? { hostname, ipAddress }
         : { hostname, ipAddress, vlan, credentials, overlayIcon: selectedNode.data?.overlayIcon };
-      
       updateNodeData(selectedNode.id, nodeData);
+    }
+  };
+
+  const saveEdgeData = () => {
+    if (selectedEdge) {
+      updateEdgeData(selectedEdge.id, {
+        sourcePort,
+        targetPort,
+        type: edgeType
+      });
     }
   };
 
@@ -55,17 +60,15 @@ const saveNodeData = () => {
     }
   };
    
-   // Umschalten der Anzeige von Zugangsdaten
   const toggleCredentialsVisibility = () => {
     setShowCredentials(!showCredentials);
   };
   
-  // Den Inspector-Panel basierend auf der Auswahl rendern
   if (!selectedNode && !selectedEdge) {
     return (
       <aside className="w-72 bg-gray-100 p-4 shadow-md">
         <div className="text-center text-gray-500 italic">
-          Wählen Sie einen Knoten oder eine Verbindung aus, um die Eigenschaften zu bearbeiten
+          Select a node or edge to edit its properties
         </div>
       </aside>
     );
@@ -73,16 +76,15 @@ const saveNodeData = () => {
   
   if (selectedNode) {
     const isAnnotation = selectedNode.type === 'annotation';
-    
     return (
       <aside className="w-72 bg-gray-100 p-4 shadow-md overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">
-          {isAnnotation ? 'Text-Label Eigenschaften' : 'Knoteneigenschaften'}
+          {isAnnotation ? 'Annotation Properties' : 'Node Properties'}
         </h2>
         <div className="space-y-4">
-          <div className="space-y-1">
+          <div>
             <label className="block text-sm">
-              {isAnnotation ? 'Beschriftung' : 'Hostname'}
+              {isAnnotation ? 'Label' : 'Hostname'}
             </label>
             <input
               type="text"
@@ -93,19 +95,18 @@ const saveNodeData = () => {
           </div>
           
           {isAnnotation ? (
-            <div className="space-y-1">
-              <label className="block text-sm">Anmerkung / Text</label>
+            <div>
+              <label className="block text-sm">Text</label>
               <textarea
                 className="w-full p-2 rounded border min-h-[100px]"
                 value={ipAddress}
                 onChange={(e) => setIpAddress(e.target.value)}
-                placeholder="Geben Sie hier Ihre Notiz ein..."
               />
             </div>
           ) : (
             <>
-              <div className="space-y-1">
-                <label className="block text-sm">IP-Adresse</label>
+              <div>
+                <label className="block text-sm">IP Address</label>
                 <input
                   type="text"
                   className="w-full p-2 rounded border"
@@ -114,7 +115,7 @@ const saveNodeData = () => {
                 />
               </div>
               
-              <div className="space-y-1">
+              <div>
                 <label className="block text-sm">VLAN</label>
                 <input
                   type="text"
@@ -124,25 +125,21 @@ const saveNodeData = () => {
                 />
               </div>
               
-              <div className="space-y-1">
-                <label className="block text-sm">Zugangsdaten (nicht exportiert)</label>
+              <div>
+                <label className="block text-sm">Credentials</label>
                 <div className="relative">
                   <input
                     type={showCredentials ? "text" : "password"}
                     className="w-full p-2 rounded border pr-10"
                     value={credentials}
                     onChange={(e) => setCredentials(e.target.value)}
-                    data-credentials-field
                   />
                   <button
                     type="button"
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={toggleCredentialsVisibility}
                   >
-                    {showCredentials ? 
-                      <EyeOff size={20} className="text-gray-500" /> : 
-                      <Eye size={20} className="text-gray-500" />
-                    }
+                    {showCredentials ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
@@ -160,7 +157,7 @@ const saveNodeData = () => {
             className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             onClick={saveNodeData}
           >
-            Änderungen übernehmen
+            Apply Changes
           </button>
         </div>
       </aside>
@@ -170,40 +167,38 @@ const saveNodeData = () => {
   if (selectedEdge) {
     return (
       <aside className="w-72 bg-gray-100 p-4 shadow-md overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-4">Verbindungseigenschaften</h2>
+        <h2 className="text-lg font-semibold mb-4">Edge Properties</h2>
         <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="block text-sm">Quell-Port</label>
+          <div>
+            <label className="block text-sm">Source Port</label>
             <input
               type="text"
               className="w-full p-2 rounded border"
-              placeholder="z.B. Eth1"
               value={sourcePort}
               onChange={(e) => setSourcePort(e.target.value)}
             />
           </div>
           
-          <div className="space-y-1">
-            <label className="block text-sm">Ziel-Port</label>
+          <div>
+            <label className="block text-sm">Target Port</label>
             <input
               type="text"
               className="w-full p-2 rounded border"
-              placeholder="z.B. Port 24"
               value={targetPort}
               onChange={(e) => setTargetPort(e.target.value)}
             />
           </div>
           
-          <div className="space-y-1">
-            <label className="block text-sm">Verbindungstyp</label>
+          <div>
+            <label className="block text-sm">Connection Type</label>
             <select
               className="w-full p-2 rounded border"
               value={edgeType}
               onChange={(e) => setEdgeType(e.target.value as 'LAN' | 'WLAN' | 'Fiber')}
             >
-              <option value="LAN">LAN (durchgezogen)</option>
-              <option value="WLAN">WLAN (gestrichelt)</option>
-              <option value="Fiber">Glasfaser (farbig)</option>
+              <option value="LAN">LAN</option>
+              <option value="WLAN">WLAN</option>
+              <option value="Fiber">Fiber</option>
             </select>
           </div>
           
@@ -211,14 +206,13 @@ const saveNodeData = () => {
             className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             onClick={saveEdgeData}
           >
-            Änderungen übernehmen
+            Apply Changes
           </button>
         </div>
       </aside>
     );
   }
   
-  // Dies sollte niemals passieren, aber TypeScript erfordert eine Rückgabe
   return null;
 };
 

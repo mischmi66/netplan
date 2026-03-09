@@ -217,44 +217,20 @@ function startBackendServer() {
     logStream.write(`Platform: ${process.platform} ${process.arch}\n`);
     logStream.write(`DB_PATH aus env: ${process.env.DB_PATH || 'Nicht gesetzt'}\n`);
     
-    let backendPath;
-    
-    if (isDev) {
-      // Development-Modus: Server aus dem Projektverzeichnis
-      backendPath = path.join(__dirname, '../server/index.cjs');
-    } else {
-      // Production-Modus: Server aus den App-Ressourcen
-      // Bei ASAR: App-Ressourcen müssen aus dem extraResources-Verzeichnis geladen werden
-      const serverPath = process.env.SERVER_PATH || 'server';
-      backendPath = path.join(process.resourcesPath, serverPath, 'index.cjs');
-    }
-    
-    console.log('Versuche Backend zu starten von:', backendPath);
-    console.log('App-Pfade:', {
-      __dirname: __dirname,
-      resourcesPath: process.resourcesPath,
-      cwd: process.cwd(),
-      appPath: app.getAppPath(),
-      isDev: isDev
-    });
-    
-    logStream.write(`Backend-Pfad: ${backendPath}\n`);
-    logStream.write(`Development-Modus: ${isDev}\n`);
-    logStream.write(`Resources-Pfad: ${process.resourcesPath}\n`);
-    logStream.write(`Aktuelles Verzeichnis: ${process.cwd()}\n`);
+    // Einheitlicher und robuster Pfad für Dev- und Produktionsmodus
+    const backendPath = path.join(__dirname, '../server/index.cjs');
+
+    console.log('[Main Process] Versuche Backend zu starten von:', backendPath);
     
     // Prüfen, ob die Backend-Datei existiert
     if (!fs.existsSync(backendPath)) {
-      console.error('Backend-Datei nicht gefunden:', backendPath);
-      dialog.showMessageBox({
-        type: 'error',
-        title: 'Backend-Fehler',
-        message: `Backend-Server-Datei nicht gefunden: ${backendPath}`,
-        detail: 'Die Anwendung kann ohne Backend-Server nicht korrekt funktionieren.'
-      });
+      const errorMsg = `Backend-Skript nicht gefunden. Gesuchter Pfad: ${backendPath}`;
+      console.error(errorMsg);
+      dialog.showErrorBox('Fataler Fehler', `${errorMsg}\n\nDie Anwendung kann nicht starten.`);
+      app.quit();
       return;
     }
-
+    
     // Umgebungsvariablen für den Server-Prozess vorbereiten
     const env = { ...process.env };
 

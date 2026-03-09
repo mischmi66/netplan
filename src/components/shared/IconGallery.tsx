@@ -38,7 +38,7 @@ const IconGallery: React.FC<IconGalleryProps> = ({ selectedValue, onSelect }) =>
             }`}
           >
             <img 
-              src={`/iconset/${icon}`} 
+              src={`${import.meta.env.BASE_URL}iconset/${icon}`} 
               alt={icon} 
               className="w-8 h-8 object-contain"
             />
