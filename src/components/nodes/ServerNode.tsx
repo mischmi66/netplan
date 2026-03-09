@@ -34,7 +34,7 @@ const ServerNode: React.FC<NodeProps<NodeData>> = ({ data }) => {
 
       {data.overlayIcon && (
         <img
-          src={`/iconset/${data.overlayIcon}`}
+          src={`${import.meta.env.BASE_URL}iconset/${data.overlayIcon}`}
           alt="Overlay Icon"
           className="absolute top-1 right-1 w-5 h-5 object-contain"
         />

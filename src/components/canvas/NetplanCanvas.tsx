@@ -73,9 +73,8 @@ const NetplanCanvas: React.FC = () => {
     (event: React.DragEvent) => {
       event.preventDefault();
       
-      if (!reactFlowWrapper.current || !reactFlowInstance) return;
+      if (!reactFlowInstance) return;
       
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const dataString = event.dataTransfer.getData('application/reactflow');
       
       // Prüfen, ob das fallengelassene Element gültig ist
@@ -85,9 +84,9 @@ const NetplanCanvas: React.FC = () => {
 
       const { type, ...data } = JSON.parse(dataString);
       
-      const position = reactFlowInstance.project({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
       });
       
       // Einen neuen Knoten erstellen

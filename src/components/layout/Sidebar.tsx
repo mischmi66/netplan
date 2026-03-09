@@ -83,7 +83,7 @@ const Sidebar: React.FC = () => {
               onDragStart={(e) => onDragStart(e, dragData)}
               draggable
             >
-              <img src={`/iconset/${iconName}`} alt={iconName} className="mr-2 w-5 h-5" />
+              <img src={`${import.meta.env.BASE_URL}iconset/${iconName}`} alt={iconName} className="mr-2 w-5 h-5" />
               <span className="text-xs">{formatIconName(iconName)}</span>
             </div>
           );

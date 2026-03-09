@@ -5,7 +5,7 @@ import type { NodeData } from '../../types.ts';
 
 const IconNode: React.FC<NodeProps<NodeData>> = ({ data }) => {
   const iconName = data.icon || 'Network--Streamline-Ultimate.svg';
-  const iconPath = `/iconset/${iconName}`;
+  const iconPath = `${import.meta.env.BASE_URL}iconset/${iconName}`;
 
   return (
     <div className="bg-transparent w-12 h-12 flex items-center justify-center">
