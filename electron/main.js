@@ -221,9 +221,9 @@ function startBackendServer() {
     if (isDev) {
       backendPath = path.join(__dirname, '../server/index.cjs');
     } else {
-      // In der gepackten App liegt der Server-Ordner im 'app.asar.unpacked' Verzeichnis
-      const unpackedPath = path.join(path.dirname(app.getAppPath()), 'app.asar.unpacked');
-      backendPath = path.join(unpackedPath, 'server/index.cjs');
+      // In der gepackten App wird der Server-Ordner in `app.asar.unpacked` abgelegt.
+      // Der korrekte, plattformunabhängige Weg dorthin ist über `process.resourcesPath`.
+      backendPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'server', 'index.cjs');
     }
 
     console.log('[Main Process] Versuche Backend zu starten von:', backendPath);
